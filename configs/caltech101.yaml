@@ -1,0 +1,34 @@
+# ------ root_path/dataset_name ------
+root_path: '/home/ce/data'
+
+seed: 3407
+
+# ------ Hyperparamters ------
+search_hp: True
+
+search_scale: [0, 0, 0, 0, 0.6]
+search_scale2: [7, 7, 5, 4, 1]
+search_step: [200, 40, 1, 1, 20]
+
+
+init_beta: 1
+init_alpha: 5
+init_beta2: 0
+init_alpha2: 0
+init_lambda: 0.75
+
+eps: 0.001
+training_feat_num: 1024
+training_free_feat_num: 1024
+
+
+w_training_free: [0.5, 0.5]
+w_training: [0.2, 0.8]
+
+# ------ Basic Config ------
+dataset: 'caltech101'
+backbone: 'RN50'
+
+lr: 0.0001
+augment_epoch: 10
+train_epoch: 30
