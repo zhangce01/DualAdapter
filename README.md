@@ -1,6 +1,6 @@
 # DualAdapter
 
-[![arXiv](https://img.shields.io/badge/arXiv-1111.11111-b31b1b.svg)](https://arxiv.org/abs/2401.07457) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![arXiv](https://img.shields.io/badge/arXiv-1111.11111-b31b1b.svg)](https://arxiv.org/abs/1111.11111) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## 👀Introduction
 
