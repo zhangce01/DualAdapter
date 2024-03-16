@@ -8,8 +8,6 @@ This repository contains the code for our paper `Negative Yields Positive: Unifi
 
 ![](fig/qualitative.png)
 
-![](fig/overview.png)
-
 ## ⏳Setup
 
 #### 1. Environment
@@ -31,6 +29,8 @@ You can extract the features by running ``` CUDA_VISIBLE_DEVICES=0 python extrac
 You can simply run ```CUDA_VISIBLE_DEVICES=0 python main.py --config configs/[dataset_name].yaml --shot [shot_number]``` to train and test the DualAdapter model. 
 
 Here, `dataset_name` should be one of `[caltech101, dtd, eurosat, fgvc, food101, imagenet, oxford_flowers, oxford_pets, stanford_cars, sun397, ucf101]`, and `shot_number` is chosen from 1/2/4/8/16.
+
+![](fig/overview.png)
 
 ## 🙏Acknowledgements
 
