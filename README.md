@@ -34,7 +34,7 @@ Here, `dataset_name` should be one of `[caltech101, dtd, eurosat, fgvc, food101,
 
 ## 🙏Acknowledgements
 
-Our codebase is adapted from [TIP-Adapter](https://github.com/gaopengcuhk/Tip-Adapter/), [CLIP](https://github.com/openai/CLIP/tree/main/clip), [APE](https://github.com/yangyangyang127/APE), and [CuPL](https://github.com/sarahpratt/CuPL). We thank the authors for releasing their code!
+Our codebase is adapted from [Tip-Adapter](https://github.com/gaopengcuhk/Tip-Adapter/), [CLIP](https://github.com/openai/CLIP/tree/main/clip), [APE](https://github.com/yangyangyang127/APE), and [CuPL](https://github.com/sarahpratt/CuPL). We thank the authors for releasing their code!
 
 ## 📧Contact
 
