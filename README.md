@@ -45,6 +45,11 @@ If you have any questions, please  contact at [cezhang@cs.cmu.edu](mailto:cezhan
 If you find this code useful, please consider citing our work:
 
 ```bibtex
-To be updated.
+@article{zhang2024negative,
+  title={Negative Yields Positive: Unified Dual-Path Adapter for Vision-Language Models},
+  author={Zhang, Ce and Stepputtis, Simon and Sycara, Katia and Xie, Yaqi},
+  journal={arXiv preprint arXiv:2403.12964},
+  year={2024}
+}
 ```
 
