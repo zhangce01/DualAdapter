@@ -4,7 +4,7 @@
 
 ## 👀Introduction
 
-This repository contains the code for our paper `Negative Yields Positive: Unified Dual-Path Adapter for Vision-Language Models`. [[Paper](https://arxiv.org/abs/1111.11111)]
+This repository contains the code for our paper `Negative Yields Positive: Unified Dual-Path Adapter for Vision-Language Models`. [[Paper](https://arxiv.org/abs/2403.12964)]
 
 ![](fig/qualitative.png)
 
