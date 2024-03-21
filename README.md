@@ -20,7 +20,7 @@ Please follow the following file provided by  [Tip-Adapter](https://github.com/g
 
 #### 3. Extracting Few-Shot Features
 
-You can extract the features by running ``` CUDA_VISIBLE_DEVICES=0 python extract_features.py```.
+You can extract the features by running ```CUDA_VISIBLE_DEVICES=0 python extract_features.py```.
 
  After running, you can get all the image features from tran/val/test set, as well as the positive/negative textual features in ```caches/[dataset_name]```.
 
