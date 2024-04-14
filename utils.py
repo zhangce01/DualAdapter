@@ -29,9 +29,9 @@ def load_text_feature(cfg):
     clip_weights_template = torch.load(save_path)
     save_path = cfg['cache_dir'] + "/text_weights_cupl.pt"
     clip_weights_cupl = torch.load(save_path)
-    save_path = cfg['cache_dir'] + "/text_weights_neutral_template.pt"
-    clip_weights_neutral = torch.load(save_path)
-    return clip_weights_template, clip_weights_cupl, clip_weights_neutral
+    save_path = cfg['cache_dir'] + "/text_weights_negative_template.pt"
+    clip_weights_negative = torch.load(save_path)
+    return clip_weights_template, clip_weights_cupl, clip_weights_negative
 
 
 def load_few_shot_feature(cfg):
@@ -144,7 +144,7 @@ class SmoothCrossEntropy(nn.Module):
         return loss.mean()
     
 class PositiveAdapter(nn.Module):
-    def __init__(self, cfg, clip_weights_template, clip_weights_cupl, clip_weights_neutral, clip_model, cache_keys,negative_cache_keys, cache_values):
+    def __init__(self, cfg, clip_weights_template, clip_weights_cupl, clip_weights_negative, clip_model, cache_keys,negative_cache_keys, cache_values):
         super(PositiveAdapter, self).__init__()
         self.shots = cfg['shots']
         self.feat_dim, self.cate_num = clip_weights_template.shape
@@ -156,7 +156,7 @@ class PositiveAdapter(nn.Module):
         self.res_keys = nn.Parameter(torch.zeros([self.cate_num, cfg['training_feat_num']]).half().cuda(), requires_grad=True)
 
         
-    def forward(self, cache_keys, negative_cache_keys, clip_weights_template, clip_weights_cupl, clip_weights_neutral, cache_values):
+    def forward(self, cache_keys, negative_cache_keys, clip_weights_template, clip_weights_cupl, clip_weights_negative, cache_values):
         new_cache_keys = cache_keys.clone()
         new_cache_keys = new_cache_keys.reshape(-1, self.feat_dim)
         new_cache_keys = new_cache_keys + self.res_keys.unsqueeze(1).repeat(1, self.shots, 1).reshape(-1, self.feat_num)
@@ -171,30 +171,30 @@ class PositiveAdapter(nn.Module):
         new_clip_weights_template = clip_weights_template + res_text_template
         new_clip_weights_cupl = clip_weights_cupl.clone()
         new_clip_weights_cupl = clip_weights_cupl + res_text_cupl
-        new_clip_weights_neutral = clip_weights_neutral.clone()
+        new_clip_weights_negative = clip_weights_negative.clone()
         
         # Normalize
         new_clip_weights_template = F.normalize(new_clip_weights_template, dim=0)
         new_clip_weights_cupl = F.normalize(new_clip_weights_cupl, dim=0)
-        new_clip_weights_neutral = F.normalize(new_clip_weights_neutral, dim=0)
+        new_clip_weights_negative = F.normalize(new_clip_weights_negative, dim=0)
         new_cache_keys = F.normalize(new_cache_keys, dim=1)
         new_negative_cache_keys = F.normalize(new_negative_cache_keys, dim=1)
         
-        return new_cache_keys.half(), new_negative_cache_keys.half(), new_clip_weights_template.half(), new_clip_weights_cupl.half(), new_clip_weights_neutral.half(), new_cache_values.half()
+        return new_cache_keys.half(), new_negative_cache_keys.half(), new_clip_weights_template.half(), new_clip_weights_cupl.half(), new_clip_weights_negative.half(), new_cache_values.half()
     
 class NegativeAdapter(nn.Module):
-    def __init__(self, cfg, clip_weights_template, clip_weights_cupl, clip_weights_neutral, clip_model, cache_keys,negative_cache_keys, cache_values):
+    def __init__(self, cfg, clip_weights_template, clip_weights_cupl, clip_weights_negative, clip_model, cache_keys,negative_cache_keys, cache_values):
         super(NegativeAdapter, self).__init__()
         self.shots = cfg['shots']
         self.feat_dim, self.cate_num = clip_weights_template.shape
         self.feat_num = cfg['training_feat_num']
         self.indices = torch.arange(self.feat_dim).cuda()
         
-        self.res_neutral = nn.Parameter(torch.zeros([self.cate_num, cfg['training_feat_num']]).half().cuda(), requires_grad=True)
+        self.res_negative = nn.Parameter(torch.zeros([self.cate_num, cfg['training_feat_num']]).half().cuda(), requires_grad=True)
         self.res_keys2 = nn.Parameter(torch.zeros([self.cate_num, cfg['training_feat_num']]).half().cuda(), requires_grad=True)
 
         
-    def forward(self, cache_keys, negative_cache_keys, clip_weights_template, clip_weights_cupl, clip_weights_neutral, cache_values):
+    def forward(self, cache_keys, negative_cache_keys, clip_weights_template, clip_weights_cupl, clip_weights_negative, cache_values):
         new_cache_keys = cache_keys.clone()
         new_cache_keys = new_cache_keys.reshape(-1, self.feat_dim)
         new_cache_values = cache_values
@@ -203,16 +203,16 @@ class NegativeAdapter(nn.Module):
         new_negative_cache_keys = new_negative_cache_keys.reshape(-1, self.feat_dim)
         new_negative_cache_keys = new_negative_cache_keys + self.res_keys2.unsqueeze(1).repeat(1, self.shots, 1).reshape(-1, self.feat_num)
 
-        res_text_neutral = self.res_neutral.t()
+        res_text_negative = self.res_negative.t()
         new_clip_weights_template = clip_weights_template.clone()
         new_clip_weights_cupl = clip_weights_cupl.clone()
-        new_clip_weights_neutral = clip_weights_neutral.clone()
-        new_clip_weights_neutral = clip_weights_neutral + res_text_neutral
+        new_clip_weights_negative = clip_weights_negative.clone()
+        new_clip_weights_negative = clip_weights_negative + res_text_negative
         # Normalize
         new_clip_weights_template = F.normalize(new_clip_weights_template, dim=0)
         new_clip_weights_cupl = F.normalize(new_clip_weights_cupl, dim=0)
-        new_clip_weights_neutral = F.normalize(new_clip_weights_neutral, dim=0)
+        new_clip_weights_negative = F.normalize(new_clip_weights_negative, dim=0)
         new_cache_keys = F.normalize(new_cache_keys, dim=1)
         new_negative_cache_keys = F.normalize(new_negative_cache_keys, dim=1)
         
-        return new_cache_keys.half(), new_negative_cache_keys.half(), new_clip_weights_template.half(), new_clip_weights_cupl.half(), new_clip_weights_neutral.half(), new_cache_values.half()
+        return new_cache_keys.half(), new_negative_cache_keys.half(), new_clip_weights_template.half(), new_clip_weights_cupl.half(), new_clip_weights_negative.half(), new_cache_values.half()
