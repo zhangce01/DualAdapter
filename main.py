@@ -27,7 +27,7 @@ def get_arguments():
     return args
 
 
-def DualAdapter(cfg, cache_keys, cache_values, val_features, val_labels, test_features, test_labels, clip_weights_template, clip_weights_cupl, clip_weights_neutral, clip_model, train_loader_F):
+def DualAdapter(cfg, cache_keys, cache_values, val_features, val_labels, test_features, test_labels, clip_weights_template, clip_weights_cupl, clip_weights_negative, clip_model, train_loader_F):
     
     feat_dim, cate_num = clip_weights_template.shape
     cache_values = cache_values.reshape(cate_num, -1, cate_num)
@@ -39,8 +39,8 @@ def DualAdapter(cfg, cache_keys, cache_values, val_features, val_labels, test_fe
     print("**** cache_values shape: {:}. ****\n".format(cache_values.shape))
     negative_cache_keys = generate_pseudo_negative_cache(cfg, cache_keys)
     soft_cache_values = generate_soft_label(cfg, cache_keys, cache_values)
-    positive_adapter = PositiveAdapter(cfg, clip_weights_template, clip_weights_cupl, clip_weights_neutral, clip_model, cache_keys, negative_cache_keys, cache_values).cuda()
-    negative_adapter = NegativeAdapter(cfg, clip_weights_template, clip_weights_cupl, clip_weights_neutral, clip_model, cache_keys, negative_cache_keys, cache_values).cuda()
+    positive_adapter = PositiveAdapter(cfg, clip_weights_template, clip_weights_cupl, clip_weights_negative, clip_model, cache_keys, negative_cache_keys, cache_values).cuda()
+    negative_adapter = NegativeAdapter(cfg, clip_weights_template, clip_weights_cupl, clip_weights_negative, clip_model, cache_keys, negative_cache_keys, cache_values).cuda()
     
     optimizer = torch.optim.AdamW([
         {'params': positive_adapter.parameters(), 'lr': cfg['lr'], 'eps': cfg['eps'], 'weight_decay': 1e-1},
@@ -53,11 +53,6 @@ def DualAdapter(cfg, cache_keys, cache_values, val_features, val_labels, test_fe
     best_acc, best_epoch = 0.0, 0
     feat_num = cfg['training_feat_num'] # feat_num
 
-    new_clip_weights = 0.45 * clip_weights_template + 0.55 * clip_weights_cupl
-    R_fW = 100. * (val_features @ new_clip_weights) 
-    acc = cls_acc(R_fW, val_labels)
-    print('(+) Zero-Shot CLIP\'s Accuracy: {:.2f}'.format(acc))
-    
     for train_idx in range(cfg['train_epoch']):
         # Train
         positive_adapter.train()
@@ -74,8 +69,8 @@ def DualAdapter(cfg, cache_keys, cache_values, val_features, val_labels, test_fe
                 image_features = clip_model.encode_image(images)
                 image_features /= image_features.norm(dim=-1, keepdim=True)
 
-            new_cache_keys, new_negative_cache_keys, new_clip_weights_template, new_clip_weights_cupl, new_clip_weights_neutral, R_FW = positive_adapter(cache_keys, negative_cache_keys, clip_weights_template, clip_weights_cupl, clip_weights_neutral, cache_values)
-            new_cache_keys, new_negative_cache_keys, new_clip_weights_template, new_clip_weights_cupl, new_clip_weights_neutral, R_FW = negative_adapter(new_cache_keys, new_negative_cache_keys, new_clip_weights_template, new_clip_weights_cupl, new_clip_weights_neutral, R_FW)
+            new_cache_keys, new_negative_cache_keys, new_clip_weights_template, new_clip_weights_cupl, new_clip_weights_negative, R_FW = positive_adapter(cache_keys, negative_cache_keys, clip_weights_template, clip_weights_cupl, clip_weights_negative, cache_values)
+            new_cache_keys, new_negative_cache_keys, new_clip_weights_template, new_clip_weights_cupl, new_clip_weights_negative, R_FW = negative_adapter(new_cache_keys, new_negative_cache_keys, new_clip_weights_template, new_clip_weights_cupl, new_clip_weights_negative, R_FW)
             
             # Positive
             R_fF = image_features @ new_cache_keys.half().t()
@@ -89,7 +84,7 @@ def DualAdapter(cfg, cache_keys, cache_values, val_features, val_labels, test_fe
             R_fF2 = (1 - image_features @ new_negative_cache_keys.half().t())
             Aff2 = ((-1) * (beta - beta * (R_fF2))).exp()
             cache_logits2 = Aff2 @ cache_values
-            R_fW2 = 100. * (1 - image_features @ new_clip_weights_neutral) * 0.15 # to scale
+            R_fW2 = 100. * (1 - image_features @ new_clip_weights_negative) * 0.15 # to scale
             
             cos = nn.CosineSimilarity(dim=1, eps=1e-7)
             text_distance_template = 1 - cos(new_clip_weights, clip_weights_template)
@@ -125,8 +120,8 @@ def DualAdapter(cfg, cache_keys, cache_values, val_features, val_labels, test_fe
         negative_adapter.eval()
         with torch.no_grad():
             R_fW_original = 100. * (val_features @ (0.45 * clip_weights_template + 0.55 * clip_weights_cupl))
-            new_cache_keys, new_negative_cache_keys, new_clip_weights_template, new_clip_weights_cupl, new_clip_weights_neutral, R_FW = positive_adapter(cache_keys, negative_cache_keys, clip_weights_template, clip_weights_cupl, clip_weights_neutral, cache_values)
-            new_cache_keys, new_negative_cache_keys, new_clip_weights_template, new_clip_weights_cupl, new_clip_weights_neutral, R_FW = negative_adapter(new_cache_keys, new_negative_cache_keys, new_clip_weights_template, new_clip_weights_cupl, new_clip_weights_neutral, R_FW)
+            new_cache_keys, new_negative_cache_keys, new_clip_weights_template, new_clip_weights_cupl, new_clip_weights_negative, R_FW = positive_adapter(cache_keys, negative_cache_keys, clip_weights_template, clip_weights_cupl, clip_weights_negative, cache_values)
+            new_cache_keys, new_negative_cache_keys, new_clip_weights_template, new_clip_weights_cupl, new_clip_weights_negative, R_FW = negative_adapter(new_cache_keys, new_negative_cache_keys, new_clip_weights_template, new_clip_weights_cupl, new_clip_weights_negative, R_FW)
 
             # Positive
             R_fF = val_features @ new_cache_keys.half().t()
@@ -139,7 +134,7 @@ def DualAdapter(cfg, cache_keys, cache_values, val_features, val_labels, test_fe
             R_fF2 = (1 - val_features @ new_negative_cache_keys.half().t())
             Aff2 = ((-1) * (beta - beta * (R_fF2))).exp()
             cache_logits2 = Aff2 @ cache_values
-            R_fW2 = 100. * (1 - val_features @ new_clip_weights_neutral) * 0.15
+            R_fW2 = 100. * (1 - val_features @ new_clip_weights_negative) * 0.15
             
         
             ape_logits = R_fW + cache_logits * alpha
@@ -176,8 +171,8 @@ def DualAdapter(cfg, cache_keys, cache_values, val_features, val_labels, test_fe
                 for alpha2 in [0]:
                     for lam in lam_list:
                         with torch.no_grad():
-                            new_cache_keys, new_negative_cache_keys, new_clip_weights_template, new_clip_weights_cupl, new_clip_weights_neutral, R_FW = positive_adapter(cache_keys, negative_cache_keys, clip_weights_template, clip_weights_cupl, clip_weights_neutral, cache_values)
-                            new_cache_keys, new_negative_cache_keys, new_clip_weights_template, new_clip_weights_cupl, new_clip_weights_neutral, R_FW = negative_adapter(new_cache_keys, new_negative_cache_keys, new_clip_weights_template, new_clip_weights_cupl, new_clip_weights_neutral, R_FW)
+                            new_cache_keys, new_negative_cache_keys, new_clip_weights_template, new_clip_weights_cupl, new_clip_weights_negative, R_FW = positive_adapter(cache_keys, negative_cache_keys, clip_weights_template, clip_weights_cupl, clip_weights_negative, cache_values)
+                            new_cache_keys, new_negative_cache_keys, new_clip_weights_template, new_clip_weights_cupl, new_clip_weights_negative, R_FW = negative_adapter(new_cache_keys, new_negative_cache_keys, new_clip_weights_template, new_clip_weights_cupl, new_clip_weights_negative, R_FW)
             
                             # Positive
                             R_fF = val_features @ new_cache_keys.half().t()
@@ -190,7 +185,7 @@ def DualAdapter(cfg, cache_keys, cache_values, val_features, val_labels, test_fe
                             R_fF2 = (1 - val_features @ new_negative_cache_keys.half().t())
                             Aff2 = ((-1) * (beta - beta * (R_fF2))).exp()
                             cache_logits2 = Aff2 @ cache_values
-                            R_fW2 = 100. * (1 - val_features @ new_clip_weights_neutral) * 0.15
+                            R_fW2 = 100. * (1 - val_features @ new_clip_weights_negative) * 0.15
                         
                             ape_logits = R_fW + cache_logits * alpha
                             ape_logits2 = R_fW2 + cache_logits2 * alpha
@@ -207,8 +202,8 @@ def DualAdapter(cfg, cache_keys, cache_values, val_features, val_labels, test_fe
     
     print("\n-------- Evaluating on the test set. --------")
     with torch.no_grad():
-        new_cache_keys, new_negative_cache_keys, new_clip_weights_template, new_clip_weights_cupl, new_clip_weights_neutral, R_FW = positive_adapter(cache_keys, negative_cache_keys, clip_weights_template, clip_weights_cupl, clip_weights_neutral, cache_values)
-        new_cache_keys, new_negative_cache_keys, new_clip_weights_template, new_clip_weights_cupl, new_clip_weights_neutral, R_FW = negative_adapter(new_cache_keys, new_negative_cache_keys, new_clip_weights_template, new_clip_weights_cupl, new_clip_weights_neutral, R_FW)
+        new_cache_keys, new_negative_cache_keys, new_clip_weights_template, new_clip_weights_cupl, new_clip_weights_negative, R_FW = positive_adapter(cache_keys, negative_cache_keys, clip_weights_template, clip_weights_cupl, clip_weights_negative, cache_values)
+        new_cache_keys, new_negative_cache_keys, new_clip_weights_template, new_clip_weights_cupl, new_clip_weights_negative, R_FW = negative_adapter(new_cache_keys, new_negative_cache_keys, new_clip_weights_template, new_clip_weights_cupl, new_clip_weights_negative, R_FW)
         
         # Positive
         R_fF = test_features @ new_cache_keys.half().t()
@@ -221,7 +216,7 @@ def DualAdapter(cfg, cache_keys, cache_values, val_features, val_labels, test_fe
         R_fF2 = (1 - test_features @ new_negative_cache_keys.half().t())
         Aff2 = ((-1) * (best_beta - best_beta * (R_fF2))).exp()
         cache_logits2 = Aff2 @ cache_values
-        R_fW2 = 100. * (1 - test_features @ new_clip_weights_neutral) * 0.15
+        R_fW2 = 100. * (1 - test_features @ new_clip_weights_negative) * 0.15
     
         ape_logits = R_fW + cache_logits * best_alpha
         ape_logits2 = R_fW2 + cache_logits2 * best_alpha
@@ -289,7 +284,7 @@ def main():
 
     # Textual features
     print("\nGetting textual features as CLIP's classifier.")
-    clip_weights_template, clip_weights_cupl, clip_weights_neutral = load_text_feature(cfg)
+    clip_weights_template, clip_weights_cupl, clip_weights_negative = load_text_feature(cfg)
 
     # Construct the cache model by few-shot training set
     print("\nConstructing cache model by few-shot visual features and labels.")
@@ -325,7 +320,7 @@ def main():
             transforms.ToTensor(),
             transforms.Normalize(mean=(0.48145466, 0.4578275, 0.40821073), std=(0.26862954, 0.26130258, 0.27577711))])
         train_loader_F = build_data_loader(data_source=dataset.train_x, batch_size=256, tfm=train_tranform, is_train=True, shuffle=True)
-    DualAdapter(cfg, cache_keys, cache_values, val_features, val_labels, test_features, test_labels, clip_weights_template, clip_weights_cupl, clip_weights_neutral, clip_model, train_loader_F)
+    DualAdapter(cfg, cache_keys, cache_values, val_features, val_labels, test_features, test_labels, clip_weights_template, clip_weights_cupl, clip_weights_negative, clip_model, train_loader_F)
 
 if __name__ == '__main__':
     main()
