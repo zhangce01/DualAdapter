@@ -2,6 +2,8 @@
 
 [![arXiv](https://img.shields.io/badge/arXiv-2403.12964-b31b1b.svg)](https://arxiv.org/abs/2403.12964) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+[Oct 29, 2024] Our paper has been accepted by WACV 2025. We have changed the paper as well as some details in the code implementation. Please kindly visit https://github.com/zhangce01/SimNL to get the latest version, thanks1
+
 ## 👀Introduction
 
 This repository contains the code for our paper `Negative Yields Positive: Unified Dual-Path Adapter for Vision-Language Models`. [[Paper](https://arxiv.org/abs/2403.12964)]
