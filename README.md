@@ -4,7 +4,7 @@
 
 ## 🎉🎉🎉News
 
-[October 29, 2024] We are excited to announce that our paper has been accepted to WACV 2025! We have updated both the paper and the code implementation. You can find the latest version at https://github.com/zhangce01/SimNL. Thanks!
+**[October 29, 2024]** We are excited to announce that our paper has been accepted to WACV 2025! We have updated both the paper and the code implementation. You can find the latest version at https://github.com/zhangce01/SimNL. Thanks!
 
 ## 👀Introduction
 
